@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Item } from '../types';
 import { Status } from '../types';
@@ -12,6 +13,7 @@ interface DashboardProps {
   onStatusChange: (itemId: string, newStatus: Status) => void;
   onNewItem: () => void;
   onEditItem: (item: Item) => void;
+  onToggleSubtask: (itemId: string, subtaskId: string) => void;
   viewMode: 'grid' | 'list';
   onViewChange: (view: 'grid' | 'list') => void;
   isDeleteModeActive: boolean;
@@ -61,8 +63,8 @@ const TagFilterButton: React.FC<{
 
 const Dashboard: React.FC<DashboardProps> = ({ 
   items, activeSpaceId, statusFilter, onFilterChange, onStatusChange, onNewItem, onEditItem, 
-  viewMode, onViewChange, isDeleteModeActive, toggleDeleteMode, selectedItemIds, onSelectItem, 
-  onBulkDelete, allTags, activeTagFilter, onTagFilterChange
+  onToggleSubtask, viewMode, onViewChange, isDeleteModeActive, toggleDeleteMode, selectedItemIds, 
+  onSelectItem, onBulkDelete, allTags, activeTagFilter, onTagFilterChange
 }) => {
   return (
     <main className="flex-1 p-6 overflow-y-auto">
@@ -157,6 +159,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 item={item} 
                 onStatusChange={onStatusChange}
                 onEdit={onEditItem}
+                onToggleSubtask={onToggleSubtask}
                 view={viewMode}
                 isDeleteModeActive={isDeleteModeActive}
                 isSelected={selectedItemIds.includes(item.id)}

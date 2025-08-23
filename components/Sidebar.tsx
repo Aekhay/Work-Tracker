@@ -1,6 +1,7 @@
+
 import React from 'react';
 import type { Space } from '../types';
-import { FolderIcon, PlusIcon, DocumentTextIcon, TrashIcon } from './icons';
+import { FolderIcon, PlusIcon, DocumentTextIcon, TrashIcon, SettingsIcon } from './icons';
 
 interface SidebarProps {
   spaces: Space[];
@@ -8,9 +9,10 @@ interface SidebarProps {
   onSelectSpace: (id: string | null) => void;
   onNewSpace: () => void;
   onDeleteSpace: (spaceId: string) => void;
+  onOpenSettings: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ spaces, activeSpaceId, onSelectSpace, onNewSpace, onDeleteSpace }) => {
+const Sidebar: React.FC<SidebarProps> = ({ spaces, activeSpaceId, onSelectSpace, onNewSpace, onDeleteSpace, onOpenSettings }) => {
   return (
     <aside className="w-64 bg-surface border-r border-gray-200 p-4 flex flex-col">
       <div className="flex items-center mb-8">
@@ -18,7 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({ spaces, activeSpaceId, onSelectSpace,
         <h1 className="text-2xl font-bold text-secondary ml-2">Work Tracker</h1>
       </div>
 
-      <nav className="flex-grow">
+      <nav className="flex-grow overflow-y-auto">
         <button
           onClick={() => onSelectSpace(null)}
           className={`w-full flex items-center px-4 py-2 text-left text-lg font-medium rounded-lg transition-colors ${
@@ -59,13 +61,22 @@ const Sidebar: React.FC<SidebarProps> = ({ spaces, activeSpaceId, onSelectSpace,
         </ul>
       </nav>
 
-      <button
-        onClick={onNewSpace}
-        className="flex items-center justify-center w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-      >
-        <PlusIcon className="w-5 h-5 mr-2" />
-        New Space
-      </button>
+      <div className="pt-4 border-t">
+         <button
+            onClick={onOpenSettings}
+            className="flex items-center w-full px-4 py-2 text-left text-gray-600 rounded-lg hover:bg-gray-100 transition-colors mb-2"
+          >
+            <SettingsIcon className="w-5 h-5 mr-3" />
+            Settings
+          </button>
+        <button
+          onClick={onNewSpace}
+          className="flex items-center justify-center w-full bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <PlusIcon className="w-5 h-5 mr-2" />
+          New Space
+        </button>
+      </div>
     </aside>
   );
 };

@@ -1,7 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import type { Space, Item } from './types';
+
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import type { Space, Item, Subtask } from './types';
 import { Status } from './types';
 import { INITIAL_SPACES, INITIAL_ITEMS } from './constants';
+import { DownloadIcon, UploadIcon, XIcon } from './components/icons';
 
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -57,15 +59,20 @@ const App: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  type ModalType = 'none' | 'newSpace' | 'newItem' | 'editItem' | 'confirmDelete' | 'confirmDeleteSpace';
+  type ModalType = 'none' | 'newSpace' | 'newItem' | 'editItem' | 'confirmDelete' | 'confirmDeleteSpace' | 'settings';
   const [modal, setModal] = useState<ModalType>('none');
   const [editingItem, setEditingItem] = useState<Item | null>(null);
   const [spaceToDelete, setSpaceToDelete] = useState<string | null>(null);
+  const [modalContextSpaceId, setModalContextSpaceId] = useState<string | null>(null);
 
   const [newItemTitle, setNewItemTitle] = useState('');
   const [newItemContent, setNewItemContent] = useState('');
   const [newItemTags, setNewItemTags] = useState('');
+  const [newItemSubtasks, setNewItemSubtasks] = useState<Subtask[]>([]);
+  const [newSubtaskText, setNewSubtaskText] = useState('');
   const [newSpaceName, setNewSpaceName] = useState('');
+  
+  const importFileRef = useRef<HTMLInputElement>(null);
 
   const allTags = useMemo(() => {
     const tags = new Set<string>();
@@ -76,7 +83,6 @@ const App: React.FC = () => {
   const handleSearchChange = (term: string) => {
     setSearchTerm(term);
     if (term) {
-      // Entering a search term triggers a global search, resetting context
       setActiveSpaceId(null);
       setStatusFilter('all');
       setTagFilter(null);
@@ -86,16 +92,15 @@ const App: React.FC = () => {
   const filteredItems = useMemo(() => {
     let results = items;
 
-    // Global search takes precedence and searches across title, content, and tags
     if (searchTerm) {
       const lowercasedTerm = searchTerm.toLowerCase();
       results = items.filter(item => 
         item.title.toLowerCase().includes(lowercasedTerm) ||
         item.content.toLowerCase().includes(lowercasedTerm) ||
-        item.tags.some(tag => tag.toLowerCase().includes(lowercasedTerm))
+        item.tags.some(tag => tag.toLowerCase().includes(lowercasedTerm)) ||
+        (Array.isArray(item.subtasks) && item.subtasks.some(subtask => subtask.text.toLowerCase().includes(lowercasedTerm)))
       );
     } else {
-      // Apply contextual filters only when not searching
       results = items.filter(item => {
         if (activeSpaceId && item.spaceId !== activeSpaceId) return false;
         if (statusFilter !== 'all' && item.status !== statusFilter) return false;
@@ -112,6 +117,22 @@ const App: React.FC = () => {
       prevItems.map(item =>
         item.id === itemId ? { ...item, status: newStatus } : item
       )
+    );
+  };
+  
+  const handleToggleSubtask = (itemId: string, subtaskId: string) => {
+    setItems(prevItems => 
+        prevItems.map(item => {
+            if (item.id === itemId && Array.isArray(item.subtasks)) {
+                return {
+                    ...item,
+                    subtasks: item.subtasks.map(subtask => 
+                        subtask.id === subtaskId ? { ...subtask, completed: !subtask.completed } : subtask
+                    )
+                };
+            }
+            return item;
+        })
     );
   };
   
@@ -141,8 +162,11 @@ const App: React.FC = () => {
     setNewItemTitle('');
     setNewItemContent('');
     setNewItemTags('');
+    setNewItemSubtasks([]);
+    setNewSubtaskText('');
     setNewSpaceName('');
     setSpaceToDelete(null);
+    setModalContextSpaceId(null);
   };
   
   const handleCreateSpace = (e: React.FormEvent) => {
@@ -161,18 +185,30 @@ const App: React.FC = () => {
 
   const handleCreateItem = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newItemTitle.trim() && activeSpaceId) {
+    if (newItemTitle.trim() && modalContextSpaceId) {
        const newItem: Item = {
         id: `item-${Date.now()}`,
-        spaceId: activeSpaceId,
+        spaceId: modalContextSpaceId,
         title: newItemTitle.trim(),
-        content: newItemContent.trim(),
+        content: newItemContent,
         status: Status.ToDo,
         createdAt: Date.now(),
         tags: newItemTags.split(',').map(t => t.trim()).filter(Boolean),
+        subtasks: newItemSubtasks,
       };
       setItems(prev => [newItem, ...prev]);
       handleCloseModal();
+    }
+  };
+  
+  const handleOpenNewItemModal = () => {
+    const currentSpaceId = activeSpaceId;
+    if (currentSpaceId) {
+        setModalContextSpaceId(currentSpaceId);
+        setModal('newItem');
+    } else {
+        // This case is handled by the command palette, but as a fallback:
+        alert("Please select a space first to create an item.");
     }
   };
 
@@ -181,6 +217,7 @@ const App: React.FC = () => {
     setNewItemTitle(item.title);
     setNewItemContent(item.content);
     setNewItemTags(item.tags.join(', '));
+    setNewItemSubtasks(item.subtasks || []);
     setModal('editItem');
   };
   
@@ -211,8 +248,9 @@ const App: React.FC = () => {
             ? { 
                 ...item, 
                 title: newItemTitle.trim(), 
-                content: newItemContent.trim(),
+                content: newItemContent,
                 tags: newItemTags.split(',').map(t => t.trim()).filter(Boolean),
+                subtasks: newItemSubtasks,
               }
             : item
         )
@@ -220,8 +258,81 @@ const App: React.FC = () => {
       handleCloseModal();
     }
   };
+
+  const handleAddSubtask = () => {
+    if (newSubtaskText.trim()) {
+        const newSubtask: Subtask = {
+            id: `sub-${Date.now()}`,
+            text: newSubtaskText.trim(),
+            completed: false,
+        };
+        setNewItemSubtasks(prev => [...prev, newSubtask]);
+        setNewSubtaskText('');
+    }
+  };
+
+  const handleDeleteSubtask = (subtaskId: string) => {
+    setNewItemSubtasks(prev => prev.filter(sub => sub.id !== subtaskId));
+  };
+  
+  const handleExportData = () => {
+    const data = JSON.stringify({ spaces, items }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `work-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    handleCloseModal();
+  };
+  
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          if (data.spaces && data.items && Array.isArray(data.spaces) && Array.isArray(data.items)) {
+            if (window.confirm("Are you sure you want to import this data? This will overwrite your current spaces and items.")) {
+                setSpaces(data.spaces);
+                setItems(data.items);
+                handleCloseModal();
+            }
+          } else {
+            alert('Invalid backup file format.');
+          }
+        } catch (error) {
+          alert('Error reading backup file.');
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
   
   const renderModalContent = () => {
+    if (modal === 'settings') {
+        return (
+            <div>
+                <h3 className="text-lg font-semibold text-secondary mb-3">Data Management</h3>
+                <div className="space-y-4">
+                    <button onClick={handleExportData} className="w-full flex items-center justify-center bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        <DownloadIcon className="w-5 h-5 mr-2" />
+                        Export Data to JSON
+                    </button>
+                    <div>
+                        <input type="file" accept=".json" ref={importFileRef} onChange={handleImportData} className="hidden" />
+                        <button onClick={() => importFileRef.current?.click()} className="w-full flex items-center justify-center bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                           <UploadIcon className="w-5 h-5 mr-2" />
+                           Import Data from JSON
+                        </button>
+                         <p className="text-xs text-gray-500 mt-2">Note: Importing will overwrite all current data.</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
     if (modal === 'newSpace') {
       return (
         <form onSubmit={handleCreateSpace}>
@@ -241,26 +352,52 @@ const App: React.FC = () => {
         const isEditing = modal === 'editItem';
         return (
             <form onSubmit={isEditing ? handleUpdateItem : handleCreateItem}>
-                <div className="mb-4">
-                    <label htmlFor="itemTitle" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                    <input id="itemTitle" type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)}
-                        className="w-full bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
-                        placeholder="e.g. Design new homepage" autoFocus/>
+                <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                    <div>
+                        <label htmlFor="itemTitle" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                        <input id="itemTitle" type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)}
+                            className="w-full bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
+                            placeholder="e.g. Design new homepage" autoFocus/>
+                    </div>
+                    <div>
+                        <label htmlFor="itemContent" className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                        <textarea
+                            id="itemContent"
+                            value={newItemContent}
+                            onChange={e => setNewItemContent(e.target.value)}
+                            className="w-full h-24 bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 resize-y"
+                            placeholder="Add notes, links, or details..."
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="itemTags" className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                        <input id="itemTags" type="text" value={newItemTags} onChange={e => setNewItemTags(e.target.value)}
+                            className="w-full bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
+                            placeholder="e.g. dev, planning, urgent"/>
+                        <p className="text-xs text-gray-500 mt-1">Separate tags with a comma.</p>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Checklist</label>
+                        <div className="bg-gray-100 p-3 rounded-lg space-y-2">
+                           {newItemSubtasks.map(subtask => (
+                               <div key={subtask.id} className="flex items-center justify-between">
+                                   <span className="text-sm text-gray-800">{subtask.text}</span>
+                                   <button type="button" onClick={() => handleDeleteSubtask(subtask.id)} className="text-gray-400 hover:text-red-600">
+                                       <XIcon className="w-4 h-4" />
+                                   </button>
+                               </div>
+                           ))}
+                           <div className="flex items-center space-x-2 pt-2">
+                               <input type="text" value={newSubtaskText} onChange={e => setNewSubtaskText(e.target.value)} 
+                                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubtask(); }}}
+                                   className="flex-grow bg-secondary border border-gray-600 rounded-md p-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary placeholder-gray-400"
+                                   placeholder="Add new sub-task..."/>
+                               <button type="button" onClick={handleAddSubtask} className="bg-primary text-white text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-blue-700">Add</button>
+                           </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="mb-4">
-                    <label htmlFor="itemContent" className="block text-sm font-medium text-gray-700 mb-1">Content (or Link)</label>
-                    <textarea id="itemContent" value={newItemContent} onChange={e => setNewItemContent(e.target.value)}
-                        className="w-full bg-secondary border border-gray-600 rounded-lg p-2 h-24 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
-                        placeholder="Add details, notes, or a URL..."/>
-                </div>
-                <div>
-                    <label htmlFor="itemTags" className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-                    <input id="itemTags" type="text" value={newItemTags} onChange={e => setNewItemTags(e.target.value)}
-                        className="w-full bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
-                        placeholder="e.g. dev, planning, urgent"/>
-                    <p className="text-xs text-gray-500 mt-1">Separate tags with a comma.</p>
-                </div>
-                <button type="submit" className="w-full mt-4 bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                <button type="submit" className="w-full mt-6 bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
                     {isEditing ? 'Save Changes' : 'Create Item'}
                 </button>
             </form>
@@ -315,6 +452,7 @@ const App: React.FC = () => {
         onSelectSpace={setActiveSpaceId}
         onNewSpace={() => setModal('newSpace')}
         onDeleteSpace={handleOpenDeleteSpaceModal}
+        onOpenSettings={() => setModal('settings')}
       />
       <div className="flex-1 flex flex-col">
         <Header
@@ -329,8 +467,9 @@ const App: React.FC = () => {
           statusFilter={statusFilter}
           onFilterChange={setStatusFilter}
           onStatusChange={handleUpdateItemStatus}
-          onNewItem={() => setModal('newItem')}
+          onNewItem={handleOpenNewItemModal}
           onEditItem={handleOpenEditModal}
+          onToggleSubtask={handleToggleSubtask}
           viewMode={viewMode}
           onViewChange={setViewMode}
           isDeleteModeActive={isDeleteModeActive}
@@ -351,6 +490,7 @@ const App: React.FC = () => {
             modal === 'editItem' ? 'Edit Item' : 
             modal === 'confirmDelete' ? 'Confirm Deletion' : 
             modal === 'confirmDeleteSpace' ? 'Confirm Space Deletion' : 
+            modal === 'settings' ? 'Settings' :
             'Create a New Item'
         }
       >
@@ -363,7 +503,7 @@ const App: React.FC = () => {
         items={items}
         onSelectSpace={setActiveSpaceId}
         onNewSpace={() => setModal('newSpace')}
-        onNewItem={() => { if(activeSpaceId) { setModal('newItem') } else { alert("Please select a space first.")} }}
+        onNewItem={handleOpenNewItemModal}
         onEditItem={handleOpenEditModal}
       />
     </div>

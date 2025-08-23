@@ -23,7 +23,7 @@ const Header: React.FC<HeaderProps> = ({ spaces, activeSpaceId, searchTerm, onSe
         </div>
         <input
           type="text"
-          placeholder="Search items by title or content..."
+          placeholder="Search items, tags, subtasks..."
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
           className="w-full bg-gray-100 border border-gray-300 rounded-lg py-2 pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition"

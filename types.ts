@@ -5,6 +5,12 @@ export enum Status {
   Completed = 'Completed',
 }
 
+export interface Subtask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface Item {
   id: string;
   spaceId: string;
@@ -13,6 +19,7 @@ export interface Item {
   status: Status;
   createdAt: number;
   tags: string[];
+  subtasks?: Subtask[];
 }
 
 export interface Space {

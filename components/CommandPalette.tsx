@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { Space, Item } from '../types';
 import { FolderIcon, PlusIcon, DocumentTextIcon, SearchIcon, XIcon } from './icons';
@@ -98,7 +99,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
         return (
           item.title.toLowerCase().includes(lowercasedQuery) ||
           item.content.toLowerCase().includes(lowercasedQuery) ||
-          item.tags.some(tag => tag.toLowerCase().includes(lowercasedQuery))
+          item.tags.some(tag => tag.toLowerCase().includes(lowercasedQuery)) ||
+          (Array.isArray(item.subtasks) && item.subtasks.some(subtask => subtask.text.toLowerCase().includes(lowercasedQuery)))
         );
       }
       

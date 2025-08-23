@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { Item } from '../types';
+import type { Item, Subtask } from '../types';
 import { Status } from '../types';
 import { STATUS_COLORS } from '../constants';
 import { CheckCircleIcon, ChevronDownIcon, PencilIcon, ClipboardCopyIcon, CheckIcon } from './icons';
@@ -8,6 +8,7 @@ interface ItemCardProps {
   item: Item;
   onStatusChange: (itemId: string, newStatus: Status) => void;
   onEdit: (item: Item) => void;
+  onToggleSubtask: (itemId: string, subtaskId: string) => void;
   view: 'grid' | 'list';
   isDeleteModeActive: boolean;
   isSelected: boolean;
@@ -15,7 +16,7 @@ interface ItemCardProps {
   onTagSelect: (tag: string) => void;
 }
 
-const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, view, isDeleteModeActive, isSelected, onSelectItem, onTagSelect }) => {
+const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onToggleSubtask, view, isDeleteModeActive, isSelected, onSelectItem, onTagSelect }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = useState(false);
@@ -41,7 +42,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, view,
   
   const handleCardClick = (e: React.MouseEvent) => {
     if (isDeleteModeActive) {
-      if ((e.target as HTMLElement).closest('button, a')) {
+      if ((e.target as HTMLElement).closest('button, a, input')) {
         return;
       }
       onSelectItem(item.id);
@@ -50,21 +51,60 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, view,
 
   const handleCopyLink = (e: React.MouseEvent) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(item.content);
+    const urlToCopy = item.content;
+    navigator.clipboard.writeText(urlToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const isLink = item.content.startsWith('http');
+  const isLink = item.content.trim().startsWith('http');
   
   const baseCardClasses = 'bg-surface rounded-lg shadow-md border hover:shadow-lg transition-all duration-300 animate-fade-in';
   const selectionClasses = isDeleteModeActive 
     ? `cursor-pointer ${isSelected ? 'border-primary ring-2 ring-primary' : 'border-gray-200'}` 
     : 'border-gray-200';
-  
+
+  const SubtaskDisplay = () => {
+    if (!Array.isArray(item.subtasks) || item.subtasks.length === 0) return null;
+    const completedCount = item.subtasks.filter(t => t.completed).length;
+    const totalCount = item.subtasks.length;
+    const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+    return (
+      <div className="mt-4 border-t pt-3">
+        <div className="flex justify-between items-center mb-2">
+          <h4 className="text-xs font-semibold text-gray-500 uppercase">Checklist</h4>
+          <span className="text-xs font-semibold text-gray-500">{completedCount}/{totalCount}</span>
+        </div>
+        <div className="w-full bg-gray-200 rounded-full h-1.5 mb-3">
+          <div className="bg-primary h-1.5 rounded-full transition-all" style={{ width: `${progress}%` }}></div>
+        </div>
+        <div className="space-y-2 max-h-28 overflow-y-auto pr-1">
+          {item.subtasks.map(subtask => (
+            <div key={subtask.id} className="flex items-center">
+              <input
+                type="checkbox"
+                id={`${item.id}-${subtask.id}`}
+                checked={subtask.completed}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  onToggleSubtask(item.id, subtask.id);
+                }}
+                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary cursor-pointer"
+              />
+              <label htmlFor={`${item.id}-${subtask.id}`} className={`ml-2 text-sm ${subtask.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                {subtask.text}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const TagsDisplay = () => (
     item.tags && item.tags.length > 0 ? (
-      <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+      <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t">
         {item.tags.map(tag => (
           <button
             key={tag}
@@ -91,22 +131,9 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, view,
             )}
             <div className="flex-grow mr-4 overflow-hidden">
                 <h3 className="text-lg font-bold text-secondary truncate">{item.title}</h3>
-                {isLink ? (
-                    <div className="flex items-center group">
-                        <a href={item.content} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline truncate block">
-                            {item.content}
-                        </a>
-                        <button 
-                            onClick={handleCopyLink}
-                            className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-primary flex-shrink-0"
-                            aria-label="Copy link"
-                        >
-                            {copied ? <CheckIcon className="w-4 h-4 text-green-500" /> : <ClipboardCopyIcon className="w-4 h-4" />}
-                        </button>
-                    </div>
-                ) : (
-                    <p className="text-sm text-gray-500 truncate">{item.content}</p>
-                )}
+                <p className="text-sm text-gray-500 truncate whitespace-pre-wrap">
+                  {item.content}
+                </p>
             </div>
 
             <div className="flex items-center space-x-4 flex-shrink-0">
@@ -142,6 +169,15 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, view,
                 >
                     <PencilIcon className="w-5 h-5" />
                 </button>
+                 {isLink && (
+                  <button 
+                      onClick={handleCopyLink}
+                      className="text-gray-500 hover:text-primary transition-opacity"
+                      aria-label="Copy link"
+                  >
+                      {copied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <ClipboardCopyIcon className="w-5 h-5" />}
+                  </button>
+                )}
             </div>
         </div>
     );
@@ -159,26 +195,25 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, view,
         </div>
       )}
       <div className="flex-grow">
-        <h3 className="text-xl font-bold text-secondary mb-2">{item.title}</h3>
-        {isLink ? (
-           <div className="flex items-start justify-between group">
-                <a href={item.content} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all pr-2">
-                    {item.content}
-                </a>
-                <button 
+        <div className="flex justify-between items-start">
+            <h3 className="text-xl font-bold text-secondary mb-2 pr-2">{item.title}</h3>
+            {isLink && (
+                 <button 
                     onClick={handleCopyLink} 
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-500 hover:text-primary flex-shrink-0"
+                    className="text-gray-500 hover:text-primary flex-shrink-0"
                     aria-label="Copy link"
                 >
                     {copied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <ClipboardCopyIcon className="w-5 h-5" />}
                 </button>
-            </div>
-        ) : (
-          <p className="text-gray-600 mb-4 break-words">{item.content}</p>
-        )}
+            )}
+        </div>
+        <p className="text-gray-600 mb-4 break-words whitespace-pre-wrap">
+          {item.content}
+        </p>
       </div>
       
       <div className="flex-shrink-0">
+        <SubtaskDisplay />
         <TagsDisplay />
 
         <div className="flex justify-between items-center mt-4">
