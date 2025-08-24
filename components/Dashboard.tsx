@@ -67,22 +67,22 @@ const Dashboard: React.FC<DashboardProps> = ({
   onSelectItem, onBulkDelete, allTags, activeTagFilter, onTagFilterChange
 }) => {
   return (
-    <main className="flex-1 p-6 overflow-y-auto">
-      <div className="flex justify-between items-center mb-2 min-h-[44px]">
+    <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-2 min-h-[44px] gap-4">
         {isDeleteModeActive ? (
-          <div className="flex justify-between items-center w-full animate-fade-in">
+          <div className="flex flex-col sm:flex-row justify-between items-center w-full animate-fade-in gap-4">
             <span className="text-lg font-semibold text-secondary">{selectedItemIds.length} item(s) selected</span>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-4 w-full sm:w-auto justify-end">
               <button
                 onClick={onBulkDelete}
                 disabled={selectedItemIds.length === 0}
-                className="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
+                className="bg-red-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-300 disabled:cursor-not-allowed flex-1 sm:flex-none"
               >
-                Delete Selected
+                Delete
               </button>
               <button
                 onClick={toggleDeleteMode}
-                className="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                className="bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors flex-1 sm:flex-none"
               >
                 Cancel
               </button>
@@ -90,14 +90,14 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         ) : (
           <>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-600 mr-2">Status:</span>
+            <div className="flex items-center flex-wrap gap-2">
+              <span className="text-sm font-medium text-gray-600 mr-2 hidden sm:inline">Status:</span>
               <FilterButton label="All" value="all" activeFilter={statusFilter} onClick={onFilterChange} />
               {Object.values(Status).map(status => (
                 <FilterButton key={status} label={status} value={status} activeFilter={statusFilter} onClick={onFilterChange} />
               ))}
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center self-end sm:self-center justify-end flex-wrap gap-2">
               {activeSpaceId && (
                   <button 
                       onClick={onNewItem}
@@ -136,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       </div>
 
       {!isDeleteModeActive && allTags.length > 0 && (
-          <div className="flex items-center space-x-2 mb-6 border-t pt-4 mt-2">
+          <div className="flex items-center flex-wrap gap-2 mb-6 border-t pt-4 mt-2">
             <div className="flex items-center text-sm font-medium text-gray-600 mr-2">
                 <TagIcon className="w-4 h-4 mr-1"/> Tags:
             </div>
@@ -169,7 +169,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-gray-100 rounded-lg">
+        <div className="text-center py-20 bg-gray-100 rounded-lg mt-4">
             <h2 className="text-2xl font-semibold text-gray-700">No items found.</h2>
             <p className="text-gray-500 mt-2">Try adjusting your search or filter, or create a new item!</p>
         </div>

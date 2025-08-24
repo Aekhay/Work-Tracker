@@ -50,6 +50,28 @@
   .whitespace-pre-wrap {
     white-space: pre-wrap;
   }
+  .custom-checkbox {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: #f3f4f6; /* gray-100 */
+    border: 1px solid #d1d5db; /* gray-300 */
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .custom-checkbox:focus-visible {
+    outline: 2px solid transparent;
+    outline-offset: 2px;
+    --tw-ring-color: #3b82f6; /* blue-500 */
+    box-shadow: 0 0 0 2px #ffffff, 0 0 0 4px var(--tw-ring-color);
+  }
+  .custom-checkbox:checked {
+    background-color: #3b82f6; /* blue-500 */
+    border-color: #3b82f6;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='3.5' stroke='white'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='M4.5 12.75l6 6 9-13.5'/%3e%3c/svg%3e");
+    background-size: 80% 80%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
 </style>
 </head>
   <body class="bg-background">

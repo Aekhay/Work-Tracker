@@ -42,7 +42,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
   
   const handleCardClick = (e: React.MouseEvent) => {
     if (isDeleteModeActive) {
-      if ((e.target as HTMLElement).closest('button, a, input')) {
+      if ((e.target as HTMLElement).closest('button, a, input, label')) {
         return;
       }
       onSelectItem(item.id);
@@ -90,7 +90,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
                   e.stopPropagation();
                   onToggleSubtask(item.id, subtask.id);
                 }}
-                className="w-4 h-4 text-primary bg-gray-100 border-gray-300 rounded focus:ring-primary cursor-pointer"
+                className="custom-checkbox w-4 h-4 rounded-lg"
               />
               <label htmlFor={`${item.id}-${subtask.id}`} className={`ml-2 text-sm ${subtask.completed ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
                 {subtask.text}
@@ -121,63 +121,67 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
   if (view === 'list') {
     return (
         <div 
-          className={`${baseCardClasses} p-4 flex items-center justify-between ${selectionClasses}`}
+          className={`${baseCardClasses} p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${selectionClasses}`}
           onClick={handleCardClick}
         >
-            {isDeleteModeActive && (
-              <div className="mr-4 flex-shrink-0">
-                  <input type="checkbox" checked={isSelected} readOnly className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" />
-              </div>
-            )}
-            <div className="flex-grow mr-4 overflow-hidden">
-                <h3 className="text-lg font-bold text-secondary truncate">{item.title}</h3>
-                <p className="text-sm text-gray-500 truncate whitespace-pre-wrap">
-                  {item.content}
-                </p>
+            <div className="flex items-start w-full">
+                {isDeleteModeActive && (
+                <div className="mr-4 flex-shrink-0 pt-1">
+                    <input type="checkbox" checked={isSelected} onChange={() => onSelectItem(item.id)} className="custom-checkbox h-5 w-5 rounded-lg" />
+                </div>
+                )}
+                <div className="flex-grow mr-0 sm:mr-4 overflow-hidden">
+                    <h3 className="text-lg font-bold text-secondary truncate">{item.title}</h3>
+                    <p className="text-sm text-gray-500 truncate whitespace-pre-wrap">
+                    {item.content}
+                    </p>
+                </div>
             </div>
 
-            <div className="flex items-center space-x-4 flex-shrink-0">
-                <span className="text-xs text-gray-400 hidden sm:block">
+            <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto sm:space-x-4 flex-shrink-0">
+                <span className="text-xs text-gray-400">
                     {new Date(item.createdAt).toLocaleDateString()}
                 </span>
-                <div className="relative" ref={dropdownRef}>
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                    <div className="relative" ref={dropdownRef}>
+                        <button
+                            onClick={(e) => {e.stopPropagation(); setIsDropdownOpen(!isDropdownOpen)}}
+                            className={`flex items-center text-sm font-semibold px-3 py-1 rounded-full transition-colors ${STATUS_COLORS[item.status]}`}
+                        >
+                            {item.status}
+                            <ChevronDownIcon className="ml-1 w-4 h-4" />
+                        </button>
+                        {isDropdownOpen && (
+                            <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-md shadow-lg border z-10">
+                                {Object.values(Status).map((status) => (
+                                    <button
+                                        key={status}
+                                        onClick={(e) => {e.stopPropagation(); handleStatusChange(status)}}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                        {status}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                     <button
-                        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className={`flex items-center text-sm font-semibold px-3 py-1 rounded-full transition-colors ${STATUS_COLORS[item.status]}`}
+                        onClick={(e) => {e.stopPropagation(); onEdit(item)}}
+                        className="text-gray-400 hover:text-primary transition-colors"
+                        aria-label={`Edit item: ${item.title}`}
                     >
-                        {item.status}
-                        <ChevronDownIcon className="ml-1 w-4 h-4" />
+                        <PencilIcon className="w-5 h-5" />
                     </button>
-                    {isDropdownOpen && (
-                        <div className="absolute top-full right-0 mt-2 w-40 bg-white rounded-md shadow-lg border z-10">
-                            {Object.values(Status).map((status) => (
-                                <button
-                                    key={status}
-                                    onClick={() => handleStatusChange(status)}
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                                >
-                                    {status}
-                                </button>
-                            ))}
-                        </div>
+                    {isLink && (
+                    <button 
+                        onClick={handleCopyLink}
+                        className="text-gray-500 hover:text-primary transition-opacity"
+                        aria-label="Copy link"
+                    >
+                        {copied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <ClipboardCopyIcon className="w-5 h-5" />}
+                    </button>
                     )}
                 </div>
-                <button
-                    onClick={() => onEdit(item)}
-                    className="text-gray-400 hover:text-primary transition-colors"
-                    aria-label={`Edit item: ${item.title}`}
-                >
-                    <PencilIcon className="w-5 h-5" />
-                </button>
-                 {isLink && (
-                  <button 
-                      onClick={handleCopyLink}
-                      className="text-gray-500 hover:text-primary transition-opacity"
-                      aria-label="Copy link"
-                  >
-                      {copied ? <CheckIcon className="w-5 h-5 text-green-500" /> : <ClipboardCopyIcon className="w-5 h-5" />}
-                  </button>
-                )}
             </div>
         </div>
     );
@@ -191,7 +195,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
     >
       {isDeleteModeActive && (
         <div className="absolute top-3 right-3 z-10">
-            <input type="checkbox" checked={isSelected} readOnly className="h-5 w-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer" />
+            <input type="checkbox" checked={isSelected} onChange={() => onSelectItem(item.id)} className="custom-checkbox h-5 w-5 rounded-lg" />
         </div>
       )}
       <div className="flex-grow">
@@ -219,7 +223,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
         <div className="flex justify-between items-center mt-4">
             <div className="relative" ref={dropdownRef}>
             <button
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                onClick={(e) => {e.stopPropagation(); setIsDropdownOpen(!isDropdownOpen)}}
                 className={`flex items-center text-sm font-semibold px-3 py-1 rounded-full transition-colors ${STATUS_COLORS[item.status]}`}
             >
                 {item.status === Status.Completed && <CheckCircleIcon className="w-4 h-4 mr-1" />}
@@ -227,11 +231,11 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
                 <ChevronDownIcon className="ml-1 w-4 h-4" />
             </button>
             {isDropdownOpen && (
-                <div className="absolute bottom-full mb-2 w-40 bg-white rounded-md shadow-lg border z-10">
+                <div className="absolute bottom-full right-0 sm:right-auto sm:left-0 mb-2 w-40 bg-white rounded-md shadow-lg border z-10">
                 {Object.values(Status).map((status) => (
                     <button
                     key={status}
-                    onClick={() => handleStatusChange(status)}
+                    onClick={(e) => {e.stopPropagation(); handleStatusChange(status)}}
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                     {status}
@@ -245,7 +249,7 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
                     {new Date(item.createdAt).toLocaleDateString()}
                 </span>
                 <button
-                    onClick={() => onEdit(item)}
+                    onClick={(e) => {e.stopPropagation(); onEdit(item)}}
                     className="text-gray-400 hover:text-primary transition-colors"
                     aria-label={`Edit item: ${item.title}`}
                 >

@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Space, Item, Subtask } from './types';
 import { Status } from './types';
 import { INITIAL_SPACES, INITIAL_ITEMS } from './constants';
-import { DownloadIcon, UploadIcon, XIcon } from './components/icons';
+import { DownloadIcon, UploadIcon, XIcon, FolderIcon, DocumentTextIcon, TagIcon, PlusIcon } from './components/icons';
 
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -47,6 +47,7 @@ const App: React.FC = () => {
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
   
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -87,6 +88,22 @@ const App: React.FC = () => {
       setStatusFilter('all');
       setTagFilter(null);
     }
+  };
+  
+  const handleSelectSpace = (spaceId: string | null) => {
+    setActiveSpaceId(spaceId);
+    setSearchTerm(''); // Clear search when selecting a space
+    setIsSidebarOpen(false);
+  };
+  
+  const handleOpenNewSpaceModal = () => {
+    setModal('newSpace');
+    setIsSidebarOpen(false);
+  };
+
+  const handleOpenSettingsModal = () => {
+    setModal('settings');
+    setIsSidebarOpen(false);
   };
 
   const filteredItems = useMemo(() => {
@@ -309,6 +326,7 @@ const App: React.FC = () => {
       };
       reader.readAsText(file);
     }
+    event.target.value = ''; // Reset file input
   };
   
   const renderModalContent = () => {
@@ -337,11 +355,16 @@ const App: React.FC = () => {
       return (
         <form onSubmit={handleCreateSpace}>
           <label htmlFor="spaceName" className="block text-sm font-medium text-gray-700 mb-1">Space Name</label>
-          <input
-            id="spaceName" type="text" value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)}
-            className="w-full bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
-            placeholder="e.g. Project Phoenix" autoFocus
-          />
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <FolderIcon className="w-5 h-5 text-gray-400" />
+            </div>
+            <input
+                id="spaceName" type="text" value={newSpaceName} onChange={e => setNewSpaceName(e.target.value)}
+                className="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg p-3 pl-10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-500"
+                placeholder="e.g. Project Phoenix" autoFocus
+            />
+          </div>
           <button type="submit" className="w-full mt-4 bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
             Create Space
           </button>
@@ -355,25 +378,40 @@ const App: React.FC = () => {
                 <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     <div>
                         <label htmlFor="itemTitle" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                        <input id="itemTitle" type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)}
-                            className="w-full bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
-                            placeholder="e.g. Design new homepage" autoFocus/>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <DocumentTextIcon className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <input id="itemTitle" type="text" value={newItemTitle} onChange={e => setNewItemTitle(e.target.value)}
+                                className="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg p-3 pl-10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-500"
+                                placeholder="e.g. Design new homepage" autoFocus/>
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="itemContent" className="block text-sm font-medium text-gray-700 mb-1">Content</label>
-                        <textarea
-                            id="itemContent"
-                            value={newItemContent}
-                            onChange={e => setNewItemContent(e.target.value)}
-                            className="w-full h-24 bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400 resize-y"
-                            placeholder="Add notes, links, or details..."
-                        />
+                        <div className="relative">
+                           <div className="absolute top-3 left-0 flex items-center pl-3 pointer-events-none">
+                                <DocumentTextIcon className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <textarea
+                                id="itemContent"
+                                value={newItemContent}
+                                onChange={e => setNewItemContent(e.target.value)}
+                                className="w-full h-24 bg-gray-100 border border-gray-300 text-gray-900 rounded-lg p-3 pl-10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-500 resize-y"
+                                placeholder="Add notes, links, or details..."
+                            />
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="itemTags" className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
-                        <input id="itemTags" type="text" value={newItemTags} onChange={e => setNewItemTags(e.target.value)}
-                            className="w-full bg-secondary border border-gray-600 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-primary text-white placeholder-gray-400"
-                            placeholder="e.g. dev, planning, urgent"/>
+                         <div className="relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <TagIcon className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <input id="itemTags" type="text" value={newItemTags} onChange={e => setNewItemTags(e.target.value)}
+                                className="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg p-3 pl-10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-500"
+                                placeholder="e.g. dev, planning, urgent"/>
+                        </div>
                         <p className="text-xs text-gray-500 mt-1">Separate tags with a comma.</p>
                     </div>
                     <div>
@@ -388,16 +426,21 @@ const App: React.FC = () => {
                                </div>
                            ))}
                            <div className="flex items-center space-x-2 pt-2">
-                               <input type="text" value={newSubtaskText} onChange={e => setNewSubtaskText(e.target.value)} 
-                                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubtask(); }}}
-                                   className="flex-grow bg-secondary border border-gray-600 rounded-md p-1.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary placeholder-gray-400"
-                                   placeholder="Add new sub-task..."/>
-                               <button type="button" onClick={handleAddSubtask} className="bg-primary text-white text-sm font-semibold px-3 py-1.5 rounded-md hover:bg-blue-700">Add</button>
+                               <div className="flex-grow flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden">
+                                   <div className="p-2 bg-gray-100 border-r border-gray-300">
+                                       <PlusIcon className="w-5 h-5 text-gray-500" />
+                                   </div>
+                                   <input type="text" value={newSubtaskText} onChange={e => setNewSubtaskText(e.target.value)} 
+                                       onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubtask(); }}}
+                                       className="w-full p-2 bg-transparent focus:outline-none text-sm text-gray-900"
+                                       placeholder="Add new sub-task..."/>
+                                </div>
+                               <button type="button" onClick={handleAddSubtask} className="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 flex-shrink-0">Add</button>
                            </div>
                         </div>
                     </div>
                 </div>
-                <button type="submit" className="w-full mt-6 bg-primary text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                <button type="submit" className="w-full mt-6 bg-primary text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
                     {isEditing ? 'Save Changes' : 'Create Item'}
                 </button>
             </form>
@@ -445,21 +488,24 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen flex bg-background text-secondary font-sans">
+    <div className="h-screen w-screen flex bg-background text-secondary font-sans overflow-hidden">
       <Sidebar
         spaces={spaces}
         activeSpaceId={activeSpaceId}
-        onSelectSpace={setActiveSpaceId}
-        onNewSpace={() => setModal('newSpace')}
+        onSelectSpace={handleSelectSpace}
+        onNewSpace={handleOpenNewSpaceModal}
         onDeleteSpace={handleOpenDeleteSpaceModal}
-        onOpenSettings={() => setModal('settings')}
+        onOpenSettings={handleOpenSettingsModal}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0">
         <Header
           spaces={spaces}
           activeSpaceId={activeSpaceId}
           searchTerm={searchTerm}
           onSearchChange={handleSearchChange}
+          onToggleSidebar={() => setIsSidebarOpen(true)}
         />
         <Dashboard
           items={filteredItems}
@@ -501,8 +547,8 @@ const App: React.FC = () => {
         onClose={() => setIsCommandPaletteOpen(false)}
         spaces={spaces}
         items={items}
-        onSelectSpace={setActiveSpaceId}
-        onNewSpace={() => setModal('newSpace')}
+        onSelectSpace={handleSelectSpace}
+        onNewSpace={handleOpenNewSpaceModal}
         onNewItem={handleOpenNewItemModal}
         onEditItem={handleOpenEditModal}
       />

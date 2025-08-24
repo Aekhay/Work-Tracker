@@ -60,7 +60,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
       },
       ...spaces.map(space => ({
         id: `space-${space.id}`,
-        title: `Switch to: ${space.name}`,
+        title: `Go to: ${space.name}`,
         category: 'Spaces',
         icon: <FolderIcon className="w-5 h-5" />,
         action: () => {
@@ -70,12 +70,12 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
       })),
       ...items.map(item => ({
         id: `item-${item.id}`,
-        title: item.title,
+        title: `Edit: ${item.title}`,
         category: 'Items',
         icon: <DocumentTextIcon className="w-5 h-5" />,
         action: () => {
             onClose();
-            onSelectSpace(item.spaceId);
+            // Do not switch space automatically, just open edit modal
             onEditItem(item);
         }
       })),
@@ -87,11 +87,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
     
     const lowercasedQuery = query.toLowerCase();
     
-    // For performance, create a map of items to avoid repeated `find` calls
     const itemMap = new Map(items.map(item => [`item-${item.id}`, item]));
 
     return allCommands.filter(command => {
-      // For items, search across title, content, and tags
       if (command.category === 'Items') {
         const item = itemMap.get(command.id);
         if (!item) return false;
@@ -104,7 +102,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
         );
       }
       
-      // For other commands, search by title
       return command.title.toLowerCase().includes(lowercasedQuery);
     });
 
@@ -114,7 +111,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
     if (activeIndex >= commands.length) {
       setActiveIndex(0);
     }
-     // Scroll to active item
     if (resultsRef.current && resultsRef.current.children[activeIndex]) {
       resultsRef.current.children[activeIndex].scrollIntoView({
         block: 'nearest',
@@ -144,30 +140,32 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-start pt-20 animate-fade-in" onMouseDown={onClose}>
+    <div className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-start pt-20 p-4 animate-fade-in" onMouseDown={onClose}>
       <div 
         className="bg-surface rounded-lg shadow-xl w-full max-w-2xl transform transition-all"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <SearchIcon className="w-5 h-5 text-gray-400" />
+        <div className="p-2">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pr-2 pointer-events-none bg-gray-100 rounded-l-lg border-r border-gray-300">
+                <SearchIcon className="w-5 h-5 text-gray-500" />
+            </div>
+            <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => {
+                setQuery(e.target.value);
+                setActiveIndex(0);
+                }}
+                placeholder="Search items, switch spaces, or create..."
+                className="w-full bg-gray-50 border border-gray-300 text-gray-900 rounded-lg py-3 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-primary text-base"
+            />
+            <button onClick={onClose} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
+                <XIcon className="w-6 h-6" />
+            </button>
           </div>
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setActiveIndex(0);
-            }}
-            placeholder="Search items, switch spaces, or create..."
-            className="w-full bg-transparent border-b border-gray-200 text-lg py-4 pl-12 pr-4 focus:outline-none"
-          />
-           <button onClick={onClose} className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600">
-            <XIcon className="w-6 h-6" />
-          </button>
         </div>
         <div className="max-h-[50vh] overflow-y-auto p-2">
             {commands.length > 0 ? (
@@ -181,11 +179,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, spaces
                                 index === activeIndex ? 'bg-blue-100' : 'hover:bg-gray-100'
                             }`}
                         >
-                            <div className="flex items-center">
-                                <span className="text-gray-500 mr-3">{command.icon}</span>
-                                <span className="text-secondary">{command.title}</span>
+                            <div className="flex items-center min-w-0">
+                                <span className="text-gray-500 mr-3 flex-shrink-0">{command.icon}</span>
+                                <span className="text-secondary truncate">{command.title}</span>
                             </div>
-                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-md">{command.category}</span>
+                            <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-md flex-shrink-0 ml-2">{command.category}</span>
                         </li>
                     ))}
                  </ul>
