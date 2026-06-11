@@ -1,5 +1,6 @@
 {
   "name": "Personal Work Tracker",
   "description": "A web application to organize work with spaces and track items with different statuses. It features powerful search and filtering capabilities for efficient personal project management.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

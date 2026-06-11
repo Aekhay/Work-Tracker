@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { Space, Item, Subtask } from './types';
 import { Status } from './types';
 import { INITIAL_SPACES, INITIAL_ITEMS } from './constants';
-import { DownloadIcon, UploadIcon, XIcon, FolderIcon, DocumentTextIcon, TagIcon, PlusIcon } from './components/icons';
+import { DownloadIcon, UploadIcon, XIcon, FolderIcon, DocumentTextIcon, TagIcon, PlusIcon, CalendarIcon } from './components/icons';
 
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -37,9 +37,12 @@ const App: React.FC = () => {
     localStorage.setItem('work-tracker-items', JSON.stringify(items));
   }, [items]);
   
+  type SortOption = 'newest' | 'oldest' | 'dueDate' | 'alphabetical';
+  type FilterOption = Status | 'all' | 'due-soon';
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<Status | 'all'>('all');
+  const [statusFilter, setStatusFilter] = useState<FilterOption>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('newest');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -69,6 +72,7 @@ const App: React.FC = () => {
   const [newItemTitle, setNewItemTitle] = useState('');
   const [newItemContent, setNewItemContent] = useState('');
   const [newItemTags, setNewItemTags] = useState('');
+  const [newItemDueDate, setNewItemDueDate] = useState('');
   const [newItemSubtasks, setNewItemSubtasks] = useState<Subtask[]>([]);
   const [newSubtaskText, setNewSubtaskText] = useState('');
   const [newSpaceName, setNewSpaceName] = useState('');
@@ -120,14 +124,34 @@ const App: React.FC = () => {
     } else {
       results = items.filter(item => {
         if (activeSpaceId && item.spaceId !== activeSpaceId) return false;
-        if (statusFilter !== 'all' && item.status !== statusFilter) return false;
         if (tagFilter && !item.tags.includes(tagFilter)) return false;
+        
+        if (statusFilter === 'due-soon') {
+            if (!item.dueDate || item.status === Status.Done) return false;
+            const dueTime = new Date(`${item.dueDate}T23:59:59`).getTime();
+            const now = Date.now();
+            const sevenDays = 7 * 24 * 60 * 60 * 1000;
+            return dueTime <= now + sevenDays;
+        } else if (statusFilter !== 'all' && item.status !== statusFilter) {
+            return false;
+        }
         return true;
       });
     }
 
-    return results.sort((a, b) => b.createdAt - a.createdAt);
-  }, [items, activeSpaceId, statusFilter, searchTerm, tagFilter]);
+    return results.sort((a, b) => {
+        if (sortBy === 'newest') return b.createdAt - a.createdAt;
+        if (sortBy === 'oldest') return a.createdAt - b.createdAt;
+        if (sortBy === 'alphabetical') return a.title.localeCompare(b.title);
+        if (sortBy === 'dueDate') {
+            if (!a.dueDate && !b.dueDate) return b.createdAt - a.createdAt;
+            if (!a.dueDate) return 1;
+            if (!b.dueDate) return -1;
+            return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+        }
+        return 0;
+    });
+  }, [items, activeSpaceId, statusFilter, searchTerm, tagFilter, sortBy]);
 
   const handleUpdateItemStatus = (itemId: string, newStatus: Status) => {
     setItems(prevItems =>
@@ -179,6 +203,7 @@ const App: React.FC = () => {
     setNewItemTitle('');
     setNewItemContent('');
     setNewItemTags('');
+    setNewItemDueDate('');
     setNewItemSubtasks([]);
     setNewSubtaskText('');
     setNewSpaceName('');
@@ -212,6 +237,7 @@ const App: React.FC = () => {
         createdAt: Date.now(),
         tags: newItemTags.split(',').map(t => t.trim()).filter(Boolean),
         subtasks: newItemSubtasks,
+        dueDate: newItemDueDate || undefined,
       };
       setItems(prev => [newItem, ...prev]);
       handleCloseModal();
@@ -234,6 +260,7 @@ const App: React.FC = () => {
     setNewItemTitle(item.title);
     setNewItemContent(item.content);
     setNewItemTags(item.tags.join(', '));
+    setNewItemDueDate(item.dueDate || '');
     setNewItemSubtasks(item.subtasks || []);
     setModal('editItem');
   };
@@ -268,6 +295,7 @@ const App: React.FC = () => {
                 content: newItemContent,
                 tags: newItemTags.split(',').map(t => t.trim()).filter(Boolean),
                 subtasks: newItemSubtasks,
+                dueDate: newItemDueDate || undefined,
               }
             : item
         )
@@ -415,6 +443,16 @@ const App: React.FC = () => {
                         <p className="text-xs text-gray-500 mt-1">Separate tags with a comma.</p>
                     </div>
                     <div>
+                        <label htmlFor="itemDueDate" className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                         <div className="relative">
+                            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                                <CalendarIcon className="w-5 h-5 text-gray-400" />
+                            </div>
+                            <input id="itemDueDate" type="date" value={newItemDueDate} onChange={e => setNewItemDueDate(e.target.value)}
+                                className="w-full bg-gray-100 border border-gray-300 text-gray-900 rounded-lg p-3 pl-10 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 placeholder-gray-500" />
+                        </div>
+                    </div>
+                    <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Checklist</label>
                         <div className="bg-gray-100 p-3 rounded-lg space-y-2">
                            {newItemSubtasks.map(subtask => (
@@ -512,6 +550,8 @@ const App: React.FC = () => {
           activeSpaceId={activeSpaceId}
           statusFilter={statusFilter}
           onFilterChange={setStatusFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
           onStatusChange={handleUpdateItemStatus}
           onNewItem={handleOpenNewItemModal}
           onEditItem={handleOpenEditModal}

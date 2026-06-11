@@ -20,6 +20,7 @@ export interface Item {
   createdAt: number;
   tags: string[];
   subtasks?: Subtask[];
+  dueDate?: string;
 }
 
 export interface Space {

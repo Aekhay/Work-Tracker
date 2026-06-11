@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { Item, Subtask } from '../types';
 import { Status } from '../types';
 import { STATUS_COLORS } from '../constants';
-import { CheckCircleIcon, ChevronDownIcon, PencilIcon, ClipboardCopyIcon, CheckIcon } from './icons';
+import { CheckCircleIcon, ChevronDownIcon, PencilIcon, ClipboardCopyIcon, CheckIcon, CalendarIcon } from './icons';
 
 interface ItemCardProps {
   item: Item;
@@ -59,6 +59,21 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
 
   const isLink = item.content.trim().startsWith('http');
   
+  const formatDate = (dateValue: string | number) => {
+    let date: Date;
+    if (typeof dateValue === 'string') {
+      const parts = dateValue.split('-');
+      if (parts.length === 3) {
+        date = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      } else {
+        date = new Date(dateValue);
+      }
+    } else {
+      date = new Date(dateValue);
+    }
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
   const baseCardClasses = 'bg-surface rounded-lg shadow-md border hover:shadow-lg transition-all duration-300 animate-fade-in';
   const selectionClasses = isDeleteModeActive 
     ? `cursor-pointer ${isSelected ? 'border-primary ring-2 ring-primary' : 'border-gray-200'}` 
@@ -139,8 +154,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
             </div>
 
             <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto sm:space-x-4 flex-shrink-0">
+                {item.dueDate && (
+                    <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded-full flex items-center border border-orange-200">
+                        <CalendarIcon className="w-3 h-3 mr-1" />
+                        {formatDate(item.dueDate)}
+                    </span>
+                )}
                 <span className="text-xs text-gray-400">
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {formatDate(item.createdAt)}
                 </span>
                 <div className="flex items-center space-x-2 sm:space-x-4">
                     <div className="relative" ref={dropdownRef}>
@@ -245,8 +266,14 @@ const ItemCard: React.FC<ItemCardProps> = ({ item, onStatusChange, onEdit, onTog
             )}
             </div>
             <div className="flex items-center space-x-3">
+                {item.dueDate && (
+                    <span className="text-xs font-medium text-orange-600 bg-orange-50 px-2 py-1 rounded-full flex items-center border border-orange-200">
+                        <CalendarIcon className="w-3 h-3 mr-1" />
+                        {formatDate(item.dueDate)}
+                    </span>
+                )}
                 <span className="text-xs text-gray-400">
-                    {new Date(item.createdAt).toLocaleDateString()}
+                    {formatDate(item.createdAt)}
                 </span>
                 <button
                     onClick={(e) => {e.stopPropagation(); onEdit(item)}}

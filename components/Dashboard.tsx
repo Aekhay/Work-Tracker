@@ -5,11 +5,16 @@ import { Status } from '../types';
 import ItemCard from './ItemCard';
 import { PlusIcon, GridViewIcon, ListViewIcon, TrashIcon, TagIcon } from './icons';
 
+type FilterOption = Status | 'all' | 'due-soon';
+type SortOption = 'newest' | 'oldest' | 'dueDate' | 'alphabetical';
+
 interface DashboardProps {
   items: Item[];
   activeSpaceId: string | null;
-  statusFilter: Status | 'all';
-  onFilterChange: (status: Status | 'all') => void;
+  statusFilter: FilterOption;
+  onFilterChange: (status: FilterOption) => void;
+  sortBy: SortOption;
+  onSortChange: (sort: SortOption) => void;
   onStatusChange: (itemId: string, newStatus: Status) => void;
   onNewItem: () => void;
   onEditItem: (item: Item) => void;
@@ -28,9 +33,9 @@ interface DashboardProps {
 
 const FilterButton: React.FC<{
   label: string;
-  value: Status | 'all';
-  activeFilter: Status | 'all';
-  onClick: (value: Status | 'all') => void;
+  value: FilterOption;
+  activeFilter: FilterOption;
+  onClick: (value: FilterOption) => void;
 }> = ({ label, value, activeFilter, onClick }) => (
   <button
     onClick={() => onClick(value)}
@@ -62,7 +67,7 @@ const TagFilterButton: React.FC<{
 );
 
 const Dashboard: React.FC<DashboardProps> = ({ 
-  items, activeSpaceId, statusFilter, onFilterChange, onStatusChange, onNewItem, onEditItem, 
+  items, activeSpaceId, statusFilter, onFilterChange, sortBy, onSortChange, onStatusChange, onNewItem, onEditItem, 
   onToggleSubtask, viewMode, onViewChange, isDeleteModeActive, toggleDeleteMode, selectedItemIds, 
   onSelectItem, onBulkDelete, allTags, activeTagFilter, onTagFilterChange
 }) => {
@@ -93,11 +98,25 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div className="flex items-center flex-wrap gap-2">
               <span className="text-sm font-medium text-gray-600 mr-2 hidden sm:inline">Status:</span>
               <FilterButton label="All" value="all" activeFilter={statusFilter} onClick={onFilterChange} />
+              <FilterButton label="Due Soon" value="due-soon" activeFilter={statusFilter} onClick={onFilterChange} />
               {Object.values(Status).map(status => (
                 <FilterButton key={status} label={status} value={status} activeFilter={statusFilter} onClick={onFilterChange} />
               ))}
             </div>
             <div className="flex items-center self-end sm:self-center justify-end flex-wrap gap-2">
+              <div className="flex items-center mr-2">
+                <span className="text-sm font-medium text-gray-600 mr-2 hidden sm:inline">Sort by:</span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => onSortChange(e.target.value as SortOption)}
+                  className="bg-gray-100 border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="oldest">Oldest First</option>
+                  <option value="dueDate">Due Date</option>
+                  <option value="alphabetical">Alphabetical</option>
+                </select>
+              </div>
               {activeSpaceId && (
                   <button 
                       onClick={onNewItem}
